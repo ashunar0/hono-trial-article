@@ -6,7 +6,16 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
   },
-  "include": ["src", "test", "scripts", "drizzle.config.ts"]
+  "include": [
+    "src",
+    "test",
+    "scripts",
+    "drizzle.config.ts"
+  ]
 }

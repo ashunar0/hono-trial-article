@@ -6,49 +6,60 @@ import type { Endpoint } from "./lib/route-types";
 import { authQueries } from "./middleware/auth/_queries";
 import { articleCommentsQueries } from "./routes/articles/[id]/comments/_queries";
 import { articlesQueries } from "./routes/articles/_queries";
+import { sessionQueries } from "./routes/session/_queries";
 import { userArticlesQueries } from "./routes/users/[id]/articles/_queries";
 import * as route0 from "./routes/articles/[id]/comments/index";
-import * as route1 from "./routes/articles/[id]/index";
-import * as route2 from "./routes/articles/[id]/publication/index";
-import * as route3 from "./routes/articles/index";
-import * as route4 from "./routes/users/[id]/articles/index";
-import * as route5 from "./routes/users/index";
+import * as route1 from "./routes/articles/[id]/comments/page";
+import * as route2 from "./routes/articles/[id]/index";
+import * as route3 from "./routes/articles/[id]/page";
+import * as route4 from "./routes/articles/[id]/publication/index";
+import * as route5 from "./routes/articles/index";
+import * as route6 from "./routes/articles/page";
+import * as route7 from "./routes/session/page";
+import * as route8 from "./routes/users/[id]/articles/index";
+import * as route9 from "./routes/users/index";
 
 /** Every _queries.ts, wired to one db */
 export const makeQueries = (db: Db) => ({
   authQueries: authQueries(db),
   articleCommentsQueries: articleCommentsQueries(db),
   articlesQueries: articlesQueries(db),
+  sessionQueries: sessionQueries(db),
   userArticlesQueries: userArticlesQueries(db),
 });
 
 /** Every route file and method, static paths first */
 export function registerRoutes(app: Hono<AppEnv>) {
-  app.get("/articles", ...route3.GET);
-  app.post("/articles", ...route3.POST);
-  app.get("/articles/:id", ...route1.GET);
-  app.patch("/articles/:id", ...route1.PATCH);
-  app.delete("/articles/:id", ...route1.DELETE);
-  app.get("/articles/:id/comments", ...route0.GET);
-  app.post("/articles/:id/comments", ...route0.POST);
-  app.post("/articles/:id/publication", ...route2.POST);
-  app.delete("/articles/:id/publication", ...route2.DELETE);
-  app.post("/users", ...route5.POST);
-  app.get("/users/:id/articles", ...route4.GET);
+  app.get("/api/articles", ...route5.GET);
+  app.post("/api/articles", ...route5.POST);
+  app.get("/api/articles/:id", ...route2.GET);
+  app.patch("/api/articles/:id", ...route2.PATCH);
+  app.delete("/api/articles/:id", ...route2.DELETE);
+  app.get("/api/articles/:id/comments", ...route0.GET);
+  app.post("/api/articles/:id/comments", ...route0.POST);
+  app.post("/api/articles/:id/publication", ...route4.POST);
+  app.delete("/api/articles/:id/publication", ...route4.DELETE);
+  app.post("/api/users", ...route9.POST);
+  app.get("/api/users/:id/articles", ...route8.GET);
+  app.get("/articles", ...route6.GET);
+  app.get("/articles/:id", ...route3.GET);
+  app.post("/articles/:id/comments", ...route1.POST);
+  app.get("/session", ...route7.GET);
+  app.post("/session", ...route7.POST);
 }
 
-/** Every route's input and output. hc<AppType>(url) gives a typed client */
+/** Every API route's input and output. hc<AppType>(url) gives a typed client */
 export type AppType = Hono<
   AppEnv,
-  Endpoint<"get", "/articles", typeof route3.GET>
-  & Endpoint<"post", "/articles", typeof route3.POST>
-  & Endpoint<"get", "/articles/:id", typeof route1.GET>
-  & Endpoint<"patch", "/articles/:id", typeof route1.PATCH>
-  & Endpoint<"delete", "/articles/:id", typeof route1.DELETE>
-  & Endpoint<"get", "/articles/:id/comments", typeof route0.GET>
-  & Endpoint<"post", "/articles/:id/comments", typeof route0.POST>
-  & Endpoint<"post", "/articles/:id/publication", typeof route2.POST>
-  & Endpoint<"delete", "/articles/:id/publication", typeof route2.DELETE>
-  & Endpoint<"post", "/users", typeof route5.POST>
-  & Endpoint<"get", "/users/:id/articles", typeof route4.GET>
+  Endpoint<"get", "/api/articles", typeof route5.GET>
+  & Endpoint<"post", "/api/articles", typeof route5.POST>
+  & Endpoint<"get", "/api/articles/:id", typeof route2.GET>
+  & Endpoint<"patch", "/api/articles/:id", typeof route2.PATCH>
+  & Endpoint<"delete", "/api/articles/:id", typeof route2.DELETE>
+  & Endpoint<"get", "/api/articles/:id/comments", typeof route0.GET>
+  & Endpoint<"post", "/api/articles/:id/comments", typeof route0.POST>
+  & Endpoint<"post", "/api/articles/:id/publication", typeof route4.POST>
+  & Endpoint<"delete", "/api/articles/:id/publication", typeof route4.DELETE>
+  & Endpoint<"post", "/api/users", typeof route9.POST>
+  & Endpoint<"get", "/api/users/:id/articles", typeof route8.GET>
 >;

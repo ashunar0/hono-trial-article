@@ -8,17 +8,17 @@ test("a typed client over the generated AppType", async () => {
   const { app } = await setup();
   const client = hc<AppType>("http://localhost", { fetch: app.request });
 
-  const user = await (await client.users.$post({ json: { name: "Alice" } })).json();
+  const user = await (await client.api.users.$post({ json: { name: "Alice" } })).json();
   const headers = { "x-user-id": user.user.id };
 
-  const res = await client.articles.$post({ json: { title: "Hello", body: "..." } }, { headers });
+  const res = await client.api.articles.$post({ json: { title: "Hello", body: "..." } }, { headers });
   if (res.status !== 201) throw new Error(`expected 201, got ${res.status}`);
   const { article } = await res.json();
 
-  const published = await client.articles[":id"].publication.$post({ param: { id: article.id } });
+  const published = await client.api.articles[":id"].publication.$post({ param: { id: article.id } });
   expect(published.status).toBe(201);
 
-  const shown = await client.articles[":id"].$get({ param: { id: article.id } });
+  const shown = await client.api.articles[":id"].$get({ param: { id: article.id } });
   if (shown.status !== 200) throw new Error(`expected 200, got ${shown.status}`);
   const body = await shown.json();
 
@@ -27,14 +27,14 @@ test("a typed client over the generated AppType", async () => {
   expect(body.article).toMatchObject({ title: "Hello", author: { name: "Alice" }, commentCount: 0 });
 
   // Inputs come from every validator: the path's param and the json body
-  const commentOn = client.articles[":id"].comments.$post;
+  const commentOn = client.api.articles[":id"].comments.$post;
   expectTypeOf<InferRequestType<typeof commentOn>>().toEqualTypeOf<
     { param: { id: string } } & { json: { body: string } }
   >();
   const commented = await commentOn({ param: { id: article.id }, json: { body: "Nice" } }, { headers });
   expect(commented.status).toBe(201);
 
-  const again = await client.articles[":id"].publication.$post({ param: { id: article.id } });
+  const again = await client.api.articles[":id"].publication.$post({ param: { id: article.id } });
   if (again.status === 422) expectTypeOf((await again.json()).error).toEqualTypeOf<string>();
   expect(again.status).toBe(422);
 });

@@ -1,9 +1,10 @@
 /**
  * Writes src/routes.gen.ts from the files:
- * - src/routes/**\/index.ts: each exported GET | POST | PUT | PATCH | DELETE becomes a route.
- *   The directory is the path; [id] is :id; files and directories starting with _ are skipped
+ * - src/routes/**\/index.ts and page.tsx: each exported GET | POST | PUT | PATCH | DELETE becomes a route.
+ *   The directory is the path; [id] is :id; files and directories starting with _ are skipped.
+ *   page.tsx is the screen (HTML) at the path, index.ts the API (JSON) at /api + the path
  * - src/{routes,middleware}/**\/_queries.ts: each exported xxxQueries is wired to the db
- * - AppType: every route's input and output, for hc. One entry per route, side by side, not a chain
+ * - AppType: every API route's input and output, for hc. One entry per route, side by side, not a chain
  *
  * Exports are read with oxc-parser, the way Void reads them. A file it cannot make sense of stops
  * the generation with a message, rather than being left out in silence.
@@ -28,7 +29,7 @@ const filesIn = (dir: string): string[] =>
 
 const at = (file: string) => relative(process.cwd(), file);
 
-const importPath = (file: string) => `./${relative(src, file).replace(/\.ts$/, "")}`;
+const importPath = (file: string) => `./${relative(src, file).replace(/\.tsx?$/, "")}`;
 
 /** The names a file exports as values. Type exports are left out */
 const valueExportsOf = (file: string, problems: string[]) => {
@@ -56,10 +57,11 @@ function generate(): { code: string } | { problems: string[] } {
   const problems: string[] = [];
 
   // routes
-  const routeFiles = filesIn(join(src, "routes")).filter((f) => f.endsWith("/index.ts"));
+  const routeFiles = filesIn(join(src, "routes")).filter((f) => /\/(index\.ts|page\.tsx)$/.test(f));
   const routes = routeFiles.flatMap((file, i) => {
-    const dir = relative(join(src, "routes"), file).replace(/\/?index\.ts$/, "");
-    const path = `/${dir}`.replace(/\[(\w+)\]/g, ":$1");
+    const api = file.endsWith("/index.ts");
+    const dir = relative(join(src, "routes"), file).replace(/\/?(index\.ts|page\.tsx)$/, "");
+    const path = `${api ? "/api" : ""}/${dir}`.replace(/\[(\w+)\]/g, ":$1").replace(/(.)\/$/, "$1");
     const names = valueExportsOf(file, problems);
 
     for (const name of names) {
@@ -70,7 +72,7 @@ function generate(): { code: string } | { problems: string[] } {
     if (found.length === 0)
       problems.push(`${at(file)}: no ${methods.join(" / ")} export, so it is no route`);
 
-    return found.map((method) => ({ path, method, name: `route${i}`, file }));
+    return found.map((method) => ({ path, method, name: `route${i}`, file, api }));
   });
   routes.sort(byPath);
 
@@ -112,10 +114,10 @@ function generate(): { code: string } | { problems: string[] } {
     ...routes.map((r) => `  app.${r.method.toLowerCase()}("${r.path}", ...${r.name}.${r.method});`),
     "}",
     "",
-    "/** Every route's input and output. hc<AppType>(url) gives a typed client */",
+    "/** Every API route's input and output. hc<AppType>(url) gives a typed client */",
     "export type AppType = Hono<",
     "  AppEnv,",
-    ...routes.map(
+    ...routes.filter((r) => r.api).map(
       (r, i) =>
         `  ${i === 0 ? "" : "& "}Endpoint<"${r.method.toLowerCase()}", "${r.path}", typeof ${r.name}.${r.method}>`,
     ),
