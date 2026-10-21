@@ -12,14 +12,20 @@ export async function setup() {
   // The entry points read the clock. Each request comes a second after the last, so order by time is decided
   vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-21T00:00:00Z") });
 
-  const call = async (method: string, path: string, body?: unknown): Promise<{ status: number; body: any }> => {
+  /** as: the user who asks (x-user-id) */
+  const call = async (
+    method: string,
+    path: string,
+    { body, as }: { body?: unknown; as?: string } = {},
+  ): Promise<{ status: number; body: any }> => {
     vi.setSystemTime(Date.now() + 1000);
     const res = await app.request(path, {
       method,
-      ...(body !== undefined && {
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }),
+      headers: {
+        ...(body !== undefined && { "content-type": "application/json" }),
+        ...(as !== undefined && { "x-user-id": as }),
+      },
+      ...(body !== undefined && { body: JSON.stringify(body) }),
     });
 
     return { status: res.status, body: res.status === 204 ? null : await res.json() };

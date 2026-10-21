@@ -7,12 +7,13 @@ let bobId: string;
 
 beforeEach(async () => {
   ({ call } = await setup());
-  aliceId = (await call("POST", "/users", { name: "Alice" })).body.user.id;
-  bobId = (await call("POST", "/users", { name: "Bob" })).body.user.id;
+  aliceId = (await call("POST", "/users", { body: { name: "Alice" } })).body.user.id;
+  bobId = (await call("POST", "/users", { body: { name: "Bob" } })).body.user.id;
 });
 
 const draft = async (authorId: string, title = "Hello") =>
-  (await call("POST", "/articles", { authorId, title, body: "..." })).body.article.id as string;
+  (await call("POST", "/articles", { body: { title, body: "..." }, as: authorId })).body
+    .article.id as string;
 
 const published = async (authorId: string, title?: string) => {
   const id = await draft(authorId, title);
@@ -31,7 +32,7 @@ describe("/articles", () => {
   test("a published article is listed with its author and comment count, newest first", async () => {
     const first = await published(aliceId, "First");
     const second = await published(bobId, "Second");
-    await call("POST", `/articles/${first}/comments`, { authorId: bobId, body: "Nice" });
+    await call("POST", `/articles/${first}/comments`, { body: { body: "Nice" }, as: bobId });
 
     const { body } = await call("GET", "/articles");
 
@@ -44,21 +45,22 @@ describe("/articles", () => {
     expect(body.articles[0].commentCount).toBe(0);
   });
 
-  test("an unknown author is the request's fault", async () => {
-    const res = await call("POST", "/articles", { authorId: "nobody", title: "x", body: "y" });
+  test("writing needs someone who asks", async () => {
+    const body = { title: "x", body: "y" };
 
-    expect(res).toEqual({ status: 422, body: { error: "NOT_FOUND", field: "authorId" } });
+    expect((await call("POST", "/articles", { body })).status).toBe(401);
+    expect((await call("POST", "/articles", { body, as: "nobody" })).status).toBe(401);
   });
 
   test("changes and deletes, 404 when absent", async () => {
     const id = await published(aliceId);
 
-    expect((await call("PATCH", `/articles/${id}`, { title: "Renamed" })).body.article.title).toBe(
+    expect((await call("PATCH", `/articles/${id}`, { body: { title: "Renamed" } })).body.article.title).toBe(
       "Renamed",
     );
     expect((await call("DELETE", `/articles/${id}`)).status).toBe(204);
     expect((await call("GET", `/articles/${id}`)).status).toBe(404);
-    expect((await call("PATCH", `/articles/${id}`, { title: "x" })).status).toBe(404);
+    expect((await call("PATCH", `/articles/${id}`, { body: { title: "x" } })).status).toBe(404);
   });
 });
 
@@ -89,7 +91,9 @@ describe("/articles/:id/comments", () => {
   test("only on a published article", async () => {
     const id = await draft(aliceId);
 
-    expect(await call("POST", `/articles/${id}/comments`, { authorId: bobId, body: "Hi" })).toEqual({
+    expect(
+      await call("POST", `/articles/${id}/comments`, { body: { body: "Hi" }, as: bobId }),
+    ).toEqual({
       status: 422,
       body: { error: "ARTICLE_NOT_PUBLISHED" },
     });
@@ -98,8 +102,8 @@ describe("/articles/:id/comments", () => {
 
   test("lists oldest first with who wrote each", async () => {
     const id = await published(aliceId);
-    await call("POST", `/articles/${id}/comments`, { authorId: bobId, body: "First" });
-    await call("POST", `/articles/${id}/comments`, { authorId: aliceId, body: "Second" });
+    await call("POST", `/articles/${id}/comments`, { body: { body: "First" }, as: bobId });
+    await call("POST", `/articles/${id}/comments`, { body: { body: "Second" }, as: aliceId });
 
     const { body } = await call("GET", `/articles/${id}/comments`);
 
@@ -115,7 +119,7 @@ describe("/users/:id/articles", () => {
     const mine = await published(aliceId, "Mine");
     await draft(aliceId, "My draft");
     await published(bobId, "Not mine");
-    await call("POST", `/articles/${mine}/comments`, { authorId: bobId, body: "Nice" });
+    await call("POST", `/articles/${mine}/comments`, { body: { body: "Nice" }, as: bobId });
 
     const { body } = await call("GET", `/users/${aliceId}/articles`);
 

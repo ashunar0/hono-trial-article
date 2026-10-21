@@ -33,18 +33,22 @@ type Row = Awaited<ReturnType<typeof seen>["query"]>[number];
 
 const withCount = (row: Row) => ({ ...row, commentCount: row.commentCount ?? 0 });
 
-/** Newest first */
-export async function articleList(db: ReadDb) {
-  const { articles, query } = seen(db);
-  const rows = await query.orderBy(desc(articles.publishedAt), desc(articles.id));
+export function articlesQueries(db: ReadDb) {
+  return {
+    /** Newest first */
+    async list() {
+      const { articles, query } = seen(db);
+      const rows = await query.orderBy(desc(articles.publishedAt), desc(articles.id));
 
-  return rows.map(withCount);
-}
+      return rows.map(withCount);
+    },
 
-/** null if absent or a draft */
-export async function articleOf(db: ReadDb, id: ArticleId) {
-  const { articles, query } = seen(db);
-  const [row] = await query.where(eq(articles.id, id)).limit(1);
+    /** null if absent or a draft */
+    async get(id: ArticleId) {
+      const { articles, query } = seen(db);
+      const [row] = await query.where(eq(articles.id, id)).limit(1);
 
-  return row ? withCount(row) : null;
+      return row ? withCount(row) : null;
+    },
+  };
 }
