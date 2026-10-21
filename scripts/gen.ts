@@ -3,6 +3,7 @@
  * - src/routes/**\/index.ts: each `export const GET | POST | PUT | PATCH | DELETE` becomes a route.
  *   The directory is the path; [id] is :id; files and directories starting with _ are skipped
  * - src/{routes,middleware}/**\/_queries.ts: each `export function xxxQueries` is wired to the db
+ * - AppType: every route's input and output, for hc. One entry per route, side by side, not a chain
  */
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -61,6 +62,7 @@ const lines = [
   'import type { Hono } from "hono";',
   'import type { Db } from "./db";',
   'import type { AppEnv } from "./factory";',
+  'import type { Endpoint } from "./lib/route-types";',
   ...queries.map((q) => `import { ${q.name} } from "${importPath(q.file)}";`),
   ...routeFiles.map((file, i) => `import * as route${i} from "${importPath(file)}";`),
   "",
@@ -73,6 +75,15 @@ const lines = [
   "export function registerRoutes(app: Hono<AppEnv>) {",
   ...routes.map((r) => `  app.${r.method.toLowerCase()}("${r.path}", ...${r.name}.${r.method});`),
   "}",
+  "",
+  "/** Every route's input and output. hc<AppType>(url) gives a typed client */",
+  "export type AppType = Hono<",
+  "  AppEnv,",
+  ...routes.map(
+    (r, i) =>
+      `  ${i === 0 ? "" : "& "}Endpoint<"${r.method.toLowerCase()}", "${r.path}", typeof ${r.name}.${r.method}>`,
+  ),
+  ">;",
   "",
 ];
 

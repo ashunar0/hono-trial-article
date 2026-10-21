@@ -31,5 +31,5 @@ export async function setup() {
     return { status: res.status, body: res.status === 204 ? null : await res.json() };
   };
 
-  return { call };
+  return { app, call };
 }

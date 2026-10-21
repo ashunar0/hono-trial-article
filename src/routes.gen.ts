@@ -2,6 +2,7 @@
 import type { Hono } from "hono";
 import type { Db } from "./db";
 import type { AppEnv } from "./factory";
+import type { Endpoint } from "./lib/route-types";
 import { authQueries } from "./middleware/auth/_queries";
 import { articleCommentsQueries } from "./routes/articles/[id]/comments/_queries";
 import { articlesQueries } from "./routes/articles/_queries";
@@ -35,3 +36,19 @@ export function registerRoutes(app: Hono<AppEnv>) {
   app.post("/users", ...route5.POST);
   app.get("/users/:id/articles", ...route4.GET);
 }
+
+/** Every route's input and output. hc<AppType>(url) gives a typed client */
+export type AppType = Hono<
+  AppEnv,
+  Endpoint<"get", "/articles", typeof route3.GET>
+  & Endpoint<"post", "/articles", typeof route3.POST>
+  & Endpoint<"get", "/articles/:id", typeof route1.GET>
+  & Endpoint<"patch", "/articles/:id", typeof route1.PATCH>
+  & Endpoint<"delete", "/articles/:id", typeof route1.DELETE>
+  & Endpoint<"get", "/articles/:id/comments", typeof route0.GET>
+  & Endpoint<"post", "/articles/:id/comments", typeof route0.POST>
+  & Endpoint<"post", "/articles/:id/publication", typeof route2.POST>
+  & Endpoint<"delete", "/articles/:id/publication", typeof route2.DELETE>
+  & Endpoint<"post", "/users", typeof route5.POST>
+  & Endpoint<"get", "/users/:id/articles", typeof route4.GET>
+>;
