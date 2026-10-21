@@ -2,28 +2,17 @@
 import { sValidator } from "@hono/standard-validator";
 import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
-import { Layout } from "../../components/layout";
+import { SessionScreen } from "../../components/screens/session";
 import { factory } from "../../factory";
 
-export const GET = factory.createHandlers(async (c) => {
-  const users = await c.var.deps.sessionQueries.users();
-  const current = getCookie(c, "user");
-
-  return c.html(
-    <Layout title="誰として使うか">
-      <form method="post" action="/session">
-        <select name="userId">
-          {users.map((user) => (
-            <option value={user.id} selected={user.id === current}>
-              {user.name}
-            </option>
-          ))}
-        </select>{" "}
-        <button>この人で使う</button>
-      </form>
-    </Layout>,
-  );
-});
+export const GET = factory.createHandlers(async (c) =>
+  c.html(
+    <SessionScreen
+      users={await c.var.deps.sessionQueries.users()}
+      current={getCookie(c, "user")}
+    />,
+  ),
+);
 
 export const POST = factory.createHandlers(
   sValidator("form", z.object({ userId: z.string().min(1) })),

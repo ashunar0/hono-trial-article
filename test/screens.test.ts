@@ -37,6 +37,12 @@ describe("/articles", () => {
 });
 
 describe("/articles/:id", () => {
+  test("no flash, no error", async () => {
+    const html = await (await app.request(`/articles/${articleId}`)).text();
+
+    expect(html).not.toContain('class="error"');
+  });
+
   test("404 for a draft", async () => {
     await call("DELETE", `/api/articles/${articleId}/publication`);
 
@@ -51,13 +57,21 @@ describe("/articles/:id", () => {
     expect(await (await app.request(`/articles/${articleId}`)).text()).toContain("Nice");
   });
 
-  test("an empty comment shows the article again with the reason and what was typed", async () => {
+  test("an empty comment goes back with the reason and what was typed, shown once", async () => {
     const res = await post(`/articles/${articleId}/comments`, { body: " " }, aliceId);
-    const html = await res.text();
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(`/articles/${articleId}`);
+
+    // The browser sends back the flash cookie it was given
+    const flash = res.headers.get("set-cookie")!.split(";")[0]!;
+    const shown = await app.request(`/articles/${articleId}`, { headers: { cookie: flash } });
+    const html = await shown.text();
+
     expect(html).toContain("コメントは 1〜1000 文字で書いてください。");
-    expect(html).toContain("<h1>Hello</h1>");
+    expect(html).toContain("<textarea name=\"body\"> </textarea>");
+    // Read once: the screen tells the browser to drop it
+    expect(shown.headers.get("set-cookie")).toMatch(/^flash=;/);
   });
 
   test("commenting needs someone: to /session", async () => {
