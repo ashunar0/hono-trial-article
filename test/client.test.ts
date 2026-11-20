@@ -1,7 +1,7 @@
 /** The generated AppType gives hc its types: inputs from the validators, outputs per status */
 import { hc, type InferRequestType } from "hono/client";
 import { expect, expectTypeOf, test } from "vitest";
-import type { AppType } from "../src/routes.gen";
+import type { AppType } from "../scripts/src/routes.gen";
 import { setup } from "./app";
 
 test("a typed client over the generated AppType", async () => {

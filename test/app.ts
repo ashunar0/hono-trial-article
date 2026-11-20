@@ -1,9 +1,9 @@
 /** An app on a fresh in-memory database, and a short way to call it */
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { vi } from "vitest";
-import { createApp } from "../src/app";
-import { createDb } from "../src/db";
-import { makeDeps } from "../src/deps";
+import { createApp } from "../scripts/src/app";
+import { createDb } from "../scripts/src/db";
+import { makeDeps } from "../scripts/src/deps";
 
 export async function setup() {
   const db = createDb(":memory:");
